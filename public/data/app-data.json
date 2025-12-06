@@ -1,0 +1,42 @@
+{
+  "accounts": [
+    {
+      "username": "huynhthithiet",
+      "password": "huynhthithiet2025"
+    },
+    {
+      "username": "huynhvanthuy",
+      "password": "huynhvanthuy2025"
+    }
+  ],
+  "exchanges": [
+    {
+      "id": "1",
+      "fromCurrency": "VND",
+      "fromAmount": 1000000,
+      "toCurrency": "USD",
+      "exchangeRate": "0.000043",
+      "toAmount": 43,
+      "date": "15/01/2025"
+    },
+    {
+      "id": "2",
+      "fromCurrency": "USD",
+      "fromAmount": 500,
+      "toCurrency": "VND",
+      "exchangeRate": "23250",
+      "toAmount": 11625000,
+      "date": "16/01/2025"
+    },
+    {
+      "id": "3",
+      "fromCurrency": "EUR",
+      "fromAmount": 200,
+      "toCurrency": "VND",
+      "exchangeRate": "25000",
+      "toAmount": 5000000,
+      "date": "17/01/2025"
+    }
+  ]
+}
+
