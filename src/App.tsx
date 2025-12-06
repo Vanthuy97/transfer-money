@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import QuanLyVon from './pages/QuanLyVon';
+import QuanLyGiaoDich from './pages/QuanLyGiaoDich';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 
@@ -11,7 +13,10 @@ interface PrivateRouteProps {
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
 };
 
 function App() {
@@ -26,6 +31,22 @@ function App() {
               element={
                 <PrivateRoute>
                   <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/quan-ly-von"
+              element={
+                <PrivateRoute>
+                  <QuanLyVon />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/quan-ly-giao-dich"
+              element={
+                <PrivateRoute>
+                  <QuanLyGiaoDich />
                 </PrivateRoute>
               }
             />

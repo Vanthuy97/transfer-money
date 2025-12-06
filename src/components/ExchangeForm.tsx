@@ -1,5 +1,6 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { ExchangeData, FormData, FormErrors, Currency, ExchangeRates } from '../types';
+import { ExchangeData, ExchangeFormData, FormErrors } from '../types';
+import { dataService } from '../services/dataService';
 import './ExchangeForm.css';
 
 interface ExchangeFormProps {
@@ -9,99 +10,105 @@ interface ExchangeFormProps {
   onCancelEdit?: () => void;
 }
 
-const ExchangeForm: React.FC<ExchangeFormProps> = ({ 
-  onAddExchange, 
+const ExchangeForm: React.FC<ExchangeFormProps> = ({
+  onAddExchange,
   onUpdateExchange,
   editingExchange,
-  onCancelEdit 
+  onCancelEdit,
 }) => {
-  const [formData, setFormData] = useState<FormData>({
-    fromCurrency: 'VND',
+  const [config, setConfig] = useState(dataService.getExchangeConfig());
+  const [formData, setFormData] = useState<ExchangeFormData>({
+    fromDenomination: 20000,
     fromAmount: '',
-    toCurrency: 'USD',
-    exchangeRate: '',
+    toDenomination: 20000,
+    feePercent: config.feePercent.toString(),
+    customerName: '',
+    note: '',
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [calculatedResult, setCalculatedResult] = useState<{
+    toAmount: number;
+    feeAmount: number;
+    totalReceived: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const currentConfig = dataService.getExchangeConfig();
+    setConfig(currentConfig);
+    setFormData((prev) => ({
+      ...prev,
+      feePercent: currentConfig.feePercent.toString(),
+    }));
+  }, []);
 
   useEffect(() => {
     if (editingExchange) {
       setFormData({
-        fromCurrency: editingExchange.fromCurrency,
+        fromDenomination: editingExchange.fromDenomination,
         fromAmount: editingExchange.fromAmount.toString(),
-        toCurrency: editingExchange.toCurrency,
-        exchangeRate: editingExchange.exchangeRate,
-        toAmount: editingExchange.toAmount.toString(),
+        toDenomination: editingExchange.toDenomination,
+        feePercent: editingExchange.feePercent.toString(),
+        customerName: editingExchange.customerName || '',
+        note: editingExchange.note || '',
+      });
+      calculateExchange({
+        fromDenomination: editingExchange.fromDenomination,
+        fromAmount: editingExchange.fromAmount.toString(),
+        toDenomination: editingExchange.toDenomination,
+        feePercent: editingExchange.feePercent.toString(),
+        customerName: editingExchange.customerName || '',
+        note: editingExchange.note || '',
       });
     } else {
-      // Reset form khi không ở chế độ sửa
+      const currentConfig = dataService.getExchangeConfig();
+      const firstEnabled = currentConfig.denominations.find((d) => d.enabled);
       setFormData({
-        fromCurrency: 'VND',
+        fromDenomination: firstEnabled?.value || 20000,
         fromAmount: '',
-        toCurrency: 'USD',
-        exchangeRate: '',
+        toDenomination: firstEnabled?.value || 20000,
+        feePercent: currentConfig.feePercent.toString(),
+        customerName: '',
+        note: '',
       });
+      setCalculatedResult(null);
       setErrors({});
     }
   }, [editingExchange]);
 
-  const currencies: Currency[] = ['VND', 'USD', 'EUR', 'GBP', 'JPY', 'CNY'];
-
-  const exchangeRates: ExchangeRates = {
-    VND: { USD: 0.000043, EUR: 0.000040, GBP: 0.000035, JPY: 0.0064, CNY: 0.00031 },
-    USD: { VND: 23250, EUR: 0.93, GBP: 0.81, JPY: 149.5, CNY: 7.24 },
-    EUR: { VND: 25000, USD: 1.08, GBP: 0.87, JPY: 161, CNY: 7.78 },
-    GBP: { VND: 28700, USD: 1.23, EUR: 1.15, JPY: 184, CNY: 8.92 },
-    JPY: { VND: 156, USD: 0.0067, EUR: 0.0062, GBP: 0.0054, CNY: 0.048 },
-    CNY: { VND: 3210, USD: 0.138, EUR: 0.128, GBP: 0.112, JPY: 20.7 },
-  };
-
-  const calculateExchange = (data: FormData): void => {
-    const { fromCurrency, toCurrency, fromAmount } = data;
-    if (fromCurrency === toCurrency) {
-      setFormData((prev) => ({
-        ...prev,
-        exchangeRate: '1',
-        toAmount: fromAmount || '',
-      }));
+  const calculateExchange = (data: ExchangeFormData): void => {
+    const fromAmount = parseFloat(data.fromAmount);
+    if (!fromAmount || fromAmount <= 0) {
+      setCalculatedResult(null);
       return;
     }
 
-    const rate = exchangeRates[fromCurrency]?.[toCurrency];
-    if (rate && fromAmount) {
-      const toAmount = (parseFloat(fromAmount) * rate).toFixed(2);
-      setFormData((prev) => ({
-        ...prev,
-        exchangeRate: rate.toString(),
-        toAmount: toAmount,
-      }));
-    } else if (rate) {
-      setFormData((prev) => ({
-        ...prev,
-        exchangeRate: rate.toString(),
-        toAmount: '',
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        exchangeRate: '',
-        toAmount: '',
-      }));
-    }
+    const feePercent = parseFloat(data.feePercent) || 0;
+    const feeAmount = (fromAmount * feePercent) / 100;
+    const totalReceived = fromAmount - feeAmount;
+
+    // Tính số tờ tiền nhận (làm tròn xuống)
+    const numberOfNotes = Math.floor(totalReceived / data.toDenomination);
+    const toAmount = numberOfNotes * data.toDenomination;
+
+    setCalculatedResult({
+      toAmount,
+      feeAmount,
+      totalReceived,
+    });
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
     const { name, value } = e.target;
-    
-    // Tạo object mới với giá trị đã cập nhật
-    const updatedData: FormData = {
+
+    const updatedData: ExchangeFormData = {
       ...formData,
       [name]: value,
     };
 
     setFormData(updatedData);
 
-    // Xóa lỗi khi người dùng nhập
+    // Xóa lỗi
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({
         ...prev,
@@ -109,8 +116,8 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
       }));
     }
 
-    // Tự động tính tỷ giá và số tiền nhận với giá trị mới
-    if (name === 'fromCurrency' || name === 'toCurrency' || name === 'fromAmount') {
+    // Tính toán lại nếu có thay đổi liên quan
+    if (name === 'fromAmount' || name === 'toDenomination' || name === 'feePercent') {
       calculateExchange(updatedData);
     }
   };
@@ -120,8 +127,12 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
     if (!formData.fromAmount || parseFloat(formData.fromAmount) <= 0) {
       newErrors.fromAmount = 'Vui lòng nhập số tiền hợp lệ';
     }
-    if (formData.fromCurrency === formData.toCurrency) {
-      newErrors.toCurrency = 'Loại tiền gửi và nhận không được giống nhau';
+    if (formData.fromDenomination === formData.toDenomination) {
+      newErrors.toDenomination = 'Mệnh giá gửi và nhận không được giống nhau';
+    }
+    const feePercent = parseFloat(formData.feePercent);
+    if (isNaN(feePercent) || feePercent < 0 || feePercent > 100) {
+      newErrors.feePercent = 'Phí đổi phải từ 0% đến 100%';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -129,46 +140,59 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    if (!validate()) {
+    if (!validate() || !calculatedResult) {
       return;
     }
 
     if (editingExchange && onUpdateExchange) {
-      // Cập nhật giao dịch
       onUpdateExchange(editingExchange.id, {
-        fromCurrency: formData.fromCurrency,
+        fromDenomination: formData.fromDenomination,
         fromAmount: parseFloat(formData.fromAmount),
-        toCurrency: formData.toCurrency,
-        exchangeRate: formData.exchangeRate,
-        toAmount: parseFloat(formData.toAmount || '0'),
+        toDenomination: formData.toDenomination,
+        toAmount: calculatedResult.toAmount,
+        feePercent: parseFloat(formData.feePercent),
+        feeAmount: calculatedResult.feeAmount,
+        totalReceived: calculatedResult.totalReceived,
         date: new Date().toLocaleDateString('vi-VN'),
+        customerName: formData.customerName || undefined,
+        note: formData.note || undefined,
       });
       if (onCancelEdit) {
         onCancelEdit();
       }
     } else {
-      // Thêm giao dịch mới
-      const newExchange = {
-        fromCurrency: formData.fromCurrency,
+      const newExchange: Omit<ExchangeData, 'id'> = {
+        fromDenomination: formData.fromDenomination,
         fromAmount: parseFloat(formData.fromAmount),
-        toCurrency: formData.toCurrency,
-        exchangeRate: formData.exchangeRate,
-        toAmount: parseFloat(formData.toAmount || '0'),
+        toDenomination: formData.toDenomination,
+        toAmount: calculatedResult.toAmount,
+        feePercent: parseFloat(formData.feePercent),
+        feeAmount: calculatedResult.feeAmount,
+        totalReceived: calculatedResult.totalReceived,
         date: new Date().toLocaleDateString('vi-VN'),
+        customerName: formData.customerName || undefined,
+        note: formData.note || undefined,
       };
 
       onAddExchange(newExchange);
 
       // Reset form
+      const currentConfig = dataService.getExchangeConfig();
+      const firstEnabled = currentConfig.denominations.find((d) => d.enabled);
       setFormData({
-        fromCurrency: 'VND',
+        fromDenomination: firstEnabled?.value || 20000,
         fromAmount: '',
-        toCurrency: 'USD',
-        exchangeRate: '',
+        toDenomination: firstEnabled?.value || 20000,
+        feePercent: currentConfig.feePercent.toString(),
+        customerName: '',
+        note: '',
       });
+      setCalculatedResult(null);
       setErrors({});
     }
   };
+
+  const enabledDenominations = config.denominations.filter((d) => d.enabled);
 
   return (
     <div className="exchange-form-container">
@@ -176,23 +200,23 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
       <form onSubmit={handleSubmit} className="exchange-form">
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="fromCurrency">Loại tiền gửi</label>
+            <label htmlFor="fromDenomination">Mệnh giá tiền gửi</label>
             <select
-              id="fromCurrency"
-              name="fromCurrency"
-              value={formData.fromCurrency}
+              id="fromDenomination"
+              name="fromDenomination"
+              value={formData.fromDenomination}
               onChange={handleChange}
             >
-              {currencies.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
+              {enabledDenominations.map((denom) => (
+                <option key={denom.value} value={denom.value}>
+                  {denom.label} ({denom.value.toLocaleString('vi-VN')} VNĐ)
                 </option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label htmlFor="fromAmount">Số tiền gửi</label>
+            <label htmlFor="fromAmount">Số tiền gửi (VNĐ)</label>
             <input
               type="number"
               id="fromAmount"
@@ -201,7 +225,8 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
               onChange={handleChange}
               placeholder="Nhập số tiền"
               min="0"
-              step="0.01"
+              step="1000"
+              required
             />
             {errors.fromAmount && (
               <span className="error-text">{errors.fromAmount}</span>
@@ -211,43 +236,94 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
 
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="toCurrency">Loại tiền nhận</label>
+            <label htmlFor="toDenomination">Mệnh giá tiền nhận</label>
             <select
-              id="toCurrency"
-              name="toCurrency"
-              value={formData.toCurrency}
+              id="toDenomination"
+              name="toDenomination"
+              value={formData.toDenomination}
               onChange={handleChange}
             >
-              {currencies.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
+              {enabledDenominations.map((denom) => (
+                <option key={denom.value} value={denom.value}>
+                  {denom.label} ({denom.value.toLocaleString('vi-VN')} VNĐ)
                 </option>
               ))}
             </select>
-            {errors.toCurrency && (
-              <span className="error-text">{errors.toCurrency}</span>
+            {errors.toDenomination && (
+              <span className="error-text">{errors.toDenomination}</span>
             )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="exchangeRate">Tỷ giá</label>
+            <label htmlFor="feePercent">Phí đổi (%)</label>
+            <input
+              type="number"
+              id="feePercent"
+              name="feePercent"
+              value={formData.feePercent}
+              onChange={handleChange}
+              placeholder="Nhập phí đổi"
+              min="0"
+              max="100"
+              step="0.1"
+              required
+            />
+            {errors.feePercent && (
+              <span className="error-text">{errors.feePercent}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="customerName">Tên khách hàng (tùy chọn)</label>
             <input
               type="text"
-              id="exchangeRate"
-              name="exchangeRate"
-              value={formData.exchangeRate}
-              readOnly
-              className="readonly-input"
+              id="customerName"
+              name="customerName"
+              value={formData.customerName}
+              onChange={handleChange}
+              placeholder="Nhập tên khách hàng"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="note">Ghi chú (tùy chọn)</label>
+            <input
+              type="text"
+              id="note"
+              name="note"
+              value={formData.note}
+              onChange={handleChange}
+              placeholder="Nhập ghi chú"
             />
           </div>
         </div>
 
-        {formData.toAmount && (
+        {calculatedResult && (
           <div className="result-box">
-            <strong>Số tiền nhận: </strong>
-            <span className="result-amount">
-              {parseFloat(formData.toAmount).toLocaleString('vi-VN')} {formData.toCurrency}
-            </span>
+            <div className="result-item">
+              <strong>Số tiền phí: </strong>
+              <span className="result-amount">
+                {calculatedResult.feeAmount.toLocaleString('vi-VN')} VNĐ
+              </span>
+            </div>
+            <div className="result-item">
+              <strong>Tổng tiền nhận (sau phí): </strong>
+              <span className="result-amount">
+                {calculatedResult.totalReceived.toLocaleString('vi-VN')} VNĐ
+              </span>
+            </div>
+            <div className="result-item highlight">
+              <strong>Số tiền thực nhận: </strong>
+              <span className="result-amount">
+                {calculatedResult.toAmount.toLocaleString('vi-VN')} VNĐ
+              </span>
+              <span className="result-note">
+                ({Math.floor(calculatedResult.totalReceived / formData.toDenomination)} tờ{' '}
+                {config.denominations.find((d) => d.value === formData.toDenomination)?.label})
+              </span>
+            </div>
           </div>
         )}
 
@@ -256,11 +332,7 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
             {editingExchange ? 'Cập Nhật' : 'Thêm Giao Dịch'}
           </button>
           {editingExchange && onCancelEdit && (
-            <button 
-              type="button" 
-              className="cancel-button"
-              onClick={onCancelEdit}
-            >
+            <button type="button" className="cancel-button" onClick={onCancelEdit}>
               Hủy
             </button>
           )}
@@ -271,4 +343,3 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
 };
 
 export default ExchangeForm;
-

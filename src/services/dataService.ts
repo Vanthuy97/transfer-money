@@ -1,4 +1,4 @@
-import { AppData, ExchangeData, Account } from '../types';
+import { AppData, ExchangeData, Account, Capital, ExchangeConfig, DenominationConfig } from '../types';
 
 const STORAGE_KEY = 'transfer_money_data';
 
@@ -32,6 +32,15 @@ class DataService {
       this.data = {
         accounts: [],
         exchanges: [],
+        capitals: [],
+        exchangeConfig: {
+          feePercent: 5,
+          denominations: [
+            { value: 20000, label: '20k', enabled: true },
+            { value: 50000, label: '50k', enabled: true },
+            { value: 100000, label: '100k', enabled: true },
+          ],
+        },
       };
       this.saveToStorage();
       return this.data;
@@ -109,6 +118,110 @@ class DataService {
     }
 
     this.data.exchanges.splice(index, 1);
+    this.saveToStorage();
+    return true;
+  }
+
+  // Lấy danh sách vốn
+  getCapitals(): Capital[] {
+    return this.data?.capitals || [];
+  }
+
+  // Thêm vốn mới
+  addCapital(capital: Capital): Capital {
+    if (!this.data) {
+      throw new Error('Dữ liệu chưa được khởi tạo');
+    }
+
+    this.data.capitals.push(capital);
+    this.saveToStorage();
+    return capital;
+  }
+
+  // Xóa vốn
+  deleteCapital(id: string): boolean {
+    if (!this.data) {
+      throw new Error('Dữ liệu chưa được khởi tạo');
+    }
+
+    const index = this.data.capitals.findIndex((c) => c.id === id);
+    if (index === -1) {
+      return false;
+    }
+
+    this.data.capitals.splice(index, 1);
+    this.saveToStorage();
+    return true;
+  }
+
+  // Lấy cấu hình đổi tiền
+  getExchangeConfig(): ExchangeConfig {
+    return this.data?.exchangeConfig || {
+      feePercent: 5,
+      denominations: [
+        { value: 20000, label: '20k', enabled: true },
+        { value: 50000, label: '50k', enabled: true },
+        { value: 100000, label: '100k', enabled: true },
+      ],
+    };
+  }
+
+  // Cập nhật cấu hình đổi tiền
+  updateExchangeConfig(config: Partial<ExchangeConfig>): ExchangeConfig {
+    if (!this.data) {
+      throw new Error('Dữ liệu chưa được khởi tạo');
+    }
+
+    this.data.exchangeConfig = {
+      ...this.data.exchangeConfig,
+      ...config,
+    };
+
+    if (config.denominations) {
+      this.data.exchangeConfig.denominations = config.denominations;
+    }
+
+    this.saveToStorage();
+    return this.data.exchangeConfig;
+  }
+
+  // Cập nhật phí đổi
+  updateFeePercent(feePercent: number): void {
+    if (!this.data) {
+      throw new Error('Dữ liệu chưa được khởi tạo');
+    }
+
+    this.data.exchangeConfig.feePercent = feePercent;
+    this.saveToStorage();
+  }
+
+  // Thêm mệnh giá mới
+  addDenomination(denomination: DenominationConfig): void {
+    if (!this.data) {
+      throw new Error('Dữ liệu chưa được khởi tạo');
+    }
+
+    this.data.exchangeConfig.denominations.push(denomination);
+    this.saveToStorage();
+  }
+
+  // Cập nhật mệnh giá
+  updateDenomination(value: number, updates: Partial<DenominationConfig>): boolean {
+    if (!this.data) {
+      throw new Error('Dữ liệu chưa được khởi tạo');
+    }
+
+    const index = this.data.exchangeConfig.denominations.findIndex(
+      (d) => d.value === value
+    );
+    if (index === -1) {
+      return false;
+    }
+
+    this.data.exchangeConfig.denominations[index] = {
+      ...this.data.exchangeConfig.denominations[index],
+      ...updates,
+    };
     this.saveToStorage();
     return true;
   }

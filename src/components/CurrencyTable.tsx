@@ -32,51 +32,76 @@ const CurrencyTable: React.FC<CurrencyTableProps> = ({ data, onEdit, onDelete })
           <thead>
             <tr>
               <th>STT</th>
-              <th>Loại tiền gửi</th>
-              <th>Số tiền gửi</th>
-              <th>Loại tiền nhận</th>
-              <th>Tỷ giá</th>
+              <th>Khách hàng</th>
+              <th>Tiền gửi</th>
+              <th>Tiền nhận</th>
+              <th>Phí đổi</th>
               <th>Số tiền nhận</th>
-              <th>Ngày giao dịch</th>
+              <th>Ngày</th>
               {(onEdit || onDelete) && <th>Thao tác</th>}
             </tr>
           </thead>
           <tbody>
-            {data.map((item, index) => (
-              <tr key={item.id}>
-                <td>{index + 1}</td>
-                <td>{item.fromCurrency}</td>
-                <td>{item.fromAmount?.toLocaleString('vi-VN') || 0}</td>
-                <td>{item.toCurrency}</td>
-                <td>{item.exchangeRate || '-'}</td>
-                <td>{item.toAmount?.toLocaleString('vi-VN') || 0}</td>
-                <td>{item.date || '-'}</td>
-                {(onEdit || onDelete) && (
+            {data.map((item, index) => {
+              const formatDenomination = (value: number): string => {
+                if (value === 20000) return '20k';
+                if (value === 50000) return '50k';
+                if (value === 100000) return '100k';
+                return `${(value / 1000).toFixed(0)}k`;
+              };
+
+              return (
+                <tr key={item.id}>
+                  <td>{index + 1}</td>
+                  <td>{item.customerName || '-'}</td>
                   <td>
-                    <div className="action-buttons">
-                      {onEdit && (
-                        <button
-                          className="edit-button"
-                          onClick={() => onEdit(item)}
-                          title="Sửa"
-                        >
-                          ✏️
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button
-                          className="delete-button"
-                          onClick={() => handleDelete(item.id)}
-                          title="Xóa"
-                        >
-                          🗑️
-                        </button>
-                      )}
-                    </div>
+                    {item.fromAmount.toLocaleString('vi-VN')} VNĐ
+                    <br />
+                    <small>({formatDenomination(item.fromDenomination)})</small>
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td>
+                    <small>({formatDenomination(item.toDenomination)})</small>
+                  </td>
+                  <td>
+                    {item.feePercent}%<br />
+                    <small>({item.feeAmount.toLocaleString('vi-VN')} VNĐ)</small>
+                  </td>
+                  <td>
+                    <strong>{item.toAmount.toLocaleString('vi-VN')} VNĐ</strong>
+                    <br />
+                    <small>
+                      ({Math.floor(item.totalReceived / item.toDenomination)} tờ{' '}
+                      {formatDenomination(item.toDenomination)})
+                    </small>
+                  </td>
+                  <td>{item.date || '-'}</td>
+                  {(onEdit || onDelete) && (
+                    <td>
+                      <div className="action-buttons">
+                        {onEdit && (
+                          <button
+                            className="edit-button"
+                            onClick={() => onEdit(item)}
+                            title="Sửa"
+                          >
+                            ✏️
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            className="delete-button"
+                            onClick={() => handleDelete(item.id)}
+                            title="Xóa"
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

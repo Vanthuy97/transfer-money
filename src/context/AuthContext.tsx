@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { AuthContextType, User } from '../types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,18 +16,26 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Kiểm tra xem đã đăng nhập chưa từ localStorage
+  // Khởi tạo state từ localStorage ngay lập tức để tránh delay
+  const getInitialAuth = (): boolean => {
     const savedAuth = localStorage.getItem('isAuthenticated');
+    return savedAuth === 'true';
+  };
+
+  const getInitialUser = (): User | null => {
     const savedUser = localStorage.getItem('user');
-    if (savedAuth === 'true' && savedUser) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(savedUser) as User);
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser) as User;
+      } catch {
+        return null;
+      }
     }
-  }, []);
+    return null;
+  };
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(getInitialAuth());
+  const [user, setUser] = useState<User | null>(getInitialUser());
 
   const login = (username: string): void => {
     setIsAuthenticated(true);

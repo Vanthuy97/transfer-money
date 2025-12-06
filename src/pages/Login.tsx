@@ -23,7 +23,11 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      // Chỉ redirect nếu đang ở trang login
+      const currentPath = window.location.pathname;
+      if (currentPath === '/login' || currentPath === '/') {
+        navigate('/dashboard', { replace: true });
+      }
     }
   }, [isAuthenticated, navigate]);
 

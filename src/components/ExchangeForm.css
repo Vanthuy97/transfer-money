@@ -64,15 +64,37 @@
 .result-box {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 15px;
+  padding: 20px;
   border-radius: 5px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+.result-item.highlight {
+  background: rgba(255, 255, 255, 0.2);
   font-size: 18px;
+  font-weight: 600;
 }
 
 .result-amount {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
+}
+
+.result-note {
+  font-size: 14px;
+  font-weight: normal;
+  opacity: 0.9;
   margin-left: 10px;
 }
 
