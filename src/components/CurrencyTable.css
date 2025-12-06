@@ -11,6 +11,22 @@
   font-size: 22px;
 }
 
+.social-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.social-link:hover {
+  text-decoration: underline;
+}
+
+.address-cell {
+  max-width: 200px;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
 .table-wrapper {
   overflow-x: auto;
 }

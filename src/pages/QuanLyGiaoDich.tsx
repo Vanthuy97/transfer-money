@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CurrencyTable from '../components/CurrencyTable';
-import ExchangeForm from '../components/ExchangeForm';
+import ExchangeModal from '../components/ExchangeModal';
 import { ExchangeData } from '../types';
 import { dataService } from '../services/dataService';
 import './QuanLyGiaoDich.css';
@@ -12,6 +12,7 @@ const QuanLyGiaoDich: React.FC = () => {
   const navigate = useNavigate();
   const [exchangeData, setExchangeData] = useState<ExchangeData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingExchange, setEditingExchange] = useState<ExchangeData | null>(null);
 
   useEffect(() => {
@@ -32,8 +33,11 @@ const QuanLyGiaoDich: React.FC = () => {
 
   const handleAddExchange = (newExchange: Omit<ExchangeData, 'id'>): void => {
     try {
-      const exchange = dataService.addExchange(newExchange);
-      setExchangeData([...exchangeData, exchange]);
+      dataService.addExchange(newExchange);
+      // Reload lại toàn bộ danh sách từ dataService để đảm bảo dữ liệu chính xác
+      const exchanges = dataService.getExchanges();
+      setExchangeData(exchanges);
+      setIsModalOpen(false);
     } catch (error) {
       console.error('Lỗi khi thêm giao dịch:', error);
       alert('Có lỗi xảy ra khi thêm giao dịch');
@@ -44,10 +48,11 @@ const QuanLyGiaoDich: React.FC = () => {
     try {
       const exchange = dataService.updateExchange(id, updatedExchange);
       if (exchange) {
-        setExchangeData(
-          exchangeData.map((ex) => (ex.id === id ? exchange : ex))
-        );
+        // Reload lại toàn bộ danh sách từ dataService để đảm bảo dữ liệu chính xác
+        const exchanges = dataService.getExchanges();
+        setExchangeData(exchanges);
         setEditingExchange(null);
+        setIsModalOpen(false);
       } else {
         alert('Không tìm thấy giao dịch để cập nhật');
       }
@@ -61,7 +66,9 @@ const QuanLyGiaoDich: React.FC = () => {
     try {
       const success = dataService.deleteExchange(id);
       if (success) {
-        setExchangeData(exchangeData.filter((ex) => ex.id !== id));
+        // Reload lại toàn bộ danh sách từ dataService để đảm bảo dữ liệu chính xác
+        const exchanges = dataService.getExchanges();
+        setExchangeData(exchanges);
         if (editingExchange?.id === id) {
           setEditingExchange(null);
         }
@@ -76,11 +83,25 @@ const QuanLyGiaoDich: React.FC = () => {
 
   const handleEditExchange = (exchange: ExchangeData): void => {
     setEditingExchange(exchange);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsModalOpen(true);
   };
 
-  const handleCancelEdit = (): void => {
+  const handleOpenModal = (): void => {
     setEditingExchange(null);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = (): void => {
+    setIsModalOpen(false);
+    setEditingExchange(null);
+  };
+
+  const handleSaveExchange = (exchange: Omit<ExchangeData, 'id'>): void => {
+    if (editingExchange) {
+      handleUpdateExchange(editingExchange.id, exchange);
+    } else {
+      handleAddExchange(exchange);
+    }
   };
 
   if (loading) {
@@ -110,12 +131,12 @@ const QuanLyGiaoDich: React.FC = () => {
 
       <main className="page-main">
         <div className="page-content">
-          <ExchangeForm
-            onAddExchange={handleAddExchange}
-            onUpdateExchange={handleUpdateExchange}
-            editingExchange={editingExchange}
-            onCancelEdit={handleCancelEdit}
-          />
+          <div className="table-header">
+            <h2>Danh Sách Giao Dịch</h2>
+            <button className="add-button" onClick={handleOpenModal}>
+              + Thêm Mới
+            </button>
+          </div>
           <CurrencyTable
             data={exchangeData}
             onEdit={handleEditExchange}
@@ -123,6 +144,13 @@ const QuanLyGiaoDich: React.FC = () => {
           />
         </div>
       </main>
+
+      <ExchangeModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveExchange}
+        editingExchange={editingExchange}
+      />
     </div>
   );
 };

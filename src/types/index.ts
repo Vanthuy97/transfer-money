@@ -19,6 +19,14 @@ export interface ExchangeData {
   date: string;
   customerName?: string; // Tên khách hàng (tùy chọn)
   note?: string; // Ghi chú
+  // Các trường mới
+  exchangeAmount?: number; // Số tiền đổi
+  exchangerName?: string; // Người đổi
+  contactName?: string; // Tên liên hệ
+  phoneNumber?: string; // Số điện thoại
+  socialLink?: string; // Link facebook hoặc mạng xã hội
+  receiveTime?: string; // Thời gian muốn nhận
+  address?: string; // Địa chỉ
 }
 
 export interface Capital {
