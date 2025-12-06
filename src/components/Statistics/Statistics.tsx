@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExchangeData, Capital } from '../types';
+import { ExchangeData, Capital } from '../../types';
 import './Statistics.css';
 
 interface StatisticsProps {
@@ -11,7 +11,7 @@ const Statistics: React.FC<StatisticsProps> = ({ exchanges, capitals }) => {
   // Tính tổng vốn (tất cả đều VNĐ)
   const totalCapital = capitals.reduce((sum, capital) => sum + capital.amount, 0);
 
-  // Tính tổng tiền giao dịch
+  // Tính tổng tiền giao dịch (chỉ tính tiền gốc, không tính phí)
   const totalExchangesReceived = exchanges.reduce(
     (sum, exchange) => sum + exchange.fromAmount,
     0
@@ -22,18 +22,20 @@ const Statistics: React.FC<StatisticsProps> = ({ exchanges, capitals }) => {
   );
   const totalFees = exchanges.reduce((sum, exchange) => sum + exchange.feeAmount, 0);
 
+  // Tính tổng tiền còn lại: tổng vốn - tổng tiền đã trả cho khách
+  // (Số tiền nhận từ khách đã được tính vào vốn khi giao dịch, nên chỉ cần trừ số tiền đã trả)
+  const remainingCapital = totalCapital - totalExchangesPaid;
+
   // Tính theo mệnh giá
   const calculateByDenomination = () => {
     const byDenom: Record<number, { received: number; paid: number }> = {};
     exchanges.forEach((exchange) => {
-      if (!byDenom[exchange.fromDenomination]) {
-        byDenom[exchange.fromDenomination] = { received: 0, paid: 0 };
+      if (!exchange.denomination) return;
+      if (!byDenom[exchange.denomination]) {
+        byDenom[exchange.denomination] = { received: 0, paid: 0 };
       }
-      if (!byDenom[exchange.toDenomination]) {
-        byDenom[exchange.toDenomination] = { received: 0, paid: 0 };
-      }
-      byDenom[exchange.fromDenomination].received += exchange.fromAmount;
-      byDenom[exchange.toDenomination].paid += exchange.toAmount;
+      byDenom[exchange.denomination].received += exchange.fromAmount;
+      byDenom[exchange.denomination].paid += exchange.toAmount;
     });
     return byDenom;
   };
@@ -59,19 +61,12 @@ const Statistics: React.FC<StatisticsProps> = ({ exchanges, capitals }) => {
                 {totalCapital.toLocaleString('vi-VN')} VNĐ
               </span>
             </div>
-            {capitals.length > 0 && (
-              <div className="sub-list">
-                {capitals.map((capital) => (
-                  <div key={capital.id} className="currency-item sub-item">
-                    <span className="currency-label">
-                      {capital.note || 'Vốn'}: {capital.amount.toLocaleString('vi-VN')} VNĐ
-                      <br />
-                      <small>({capital.addedBy} - {capital.date} {capital.time})</small>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="currency-item highlight">
+              <span className="currency-label">Tổng tiền còn lại:</span>
+              <span className="currency-value">
+                {remainingCapital.toLocaleString('vi-VN')} VNĐ
+              </span>
+            </div>
           </div>
         </div>
 
@@ -79,19 +74,19 @@ const Statistics: React.FC<StatisticsProps> = ({ exchanges, capitals }) => {
           <h3>💰 Tổng Tiền Giao Dịch</h3>
           <div className="currency-list">
             <div className="currency-item">
-              <span className="currency-label">Tổng tiền nhận:</span>
+              <span className="currency-label">Tổng đã đổi:</span>
+              <span className="currency-value">
+                {exchanges.length} giao dịch
+              </span>
+            </div>
+            <div className="currency-item">
+              <span className="currency-label">Tổng tiền nhận (đã gồm phí):</span>
               <span className="currency-value">
                 {totalExchangesReceived.toLocaleString('vi-VN')} VNĐ
               </span>
             </div>
-            <div className="currency-item">
-              <span className="currency-label">Tổng tiền trả:</span>
-              <span className="currency-value">
-                {totalExchangesPaid.toLocaleString('vi-VN')} VNĐ
-              </span>
-            </div>
             <div className="currency-item highlight">
-              <span className="currency-label">Tổng phí thu được:</span>
+              <span className="currency-label">Tổng phí lời:</span>
               <span className="currency-value">
                 {totalFees.toLocaleString('vi-VN')} VNĐ
               </span>

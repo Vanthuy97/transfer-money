@@ -7,18 +7,21 @@ export interface Account {
   password: string;
 }
 
+export type ExchangeStatus = 'Chưa Nhận Tiền' | 'Chờ Giao' | 'Đã Nhận Tiền' | 'Hoàn Thành';
+
 export interface ExchangeData {
   id: string;
-  fromDenomination: number; // Mệnh giá tiền gửi (20k, 50k, 100k)
+  denomination: number; // Mệnh giá tiền (20k, 50k, 100k)
   fromAmount: number; // Số tiền gửi (tổng)
-  toDenomination: number; // Mệnh giá tiền nhận (20k, 50k, 100k)
-  toAmount: number; // Số tiền nhận (tổng)
+  toAmount: number; // Số tiền nhận (tổng) - tính từ fromAmount trừ phí
   feePercent: number; // Phí đổi (%)
   feeAmount: number; // Số tiền phí
   totalReceived: number; // Tổng tiền nhận (sau khi trừ phí)
   date: string;
+  createdBy?: string; // Người tạo giao dịch
   customerName?: string; // Tên khách hàng (tùy chọn)
   note?: string; // Ghi chú
+  status?: ExchangeStatus; // Trạng thái giao dịch
   // Các trường mới
   exchangeAmount?: number; // Số tiền đổi
   exchangerName?: string; // Người đổi
@@ -64,9 +67,8 @@ export interface AuthContextType {
 }
 
 export interface ExchangeFormData {
-  fromDenomination: number;
+  denomination: number;
   fromAmount: string;
-  toDenomination: number;
   feePercent: string;
   customerName: string;
   note: string;
@@ -74,7 +76,6 @@ export interface ExchangeFormData {
 
 export interface FormErrors {
   fromAmount?: string;
-  toDenomination?: string;
   feePercent?: string;
 }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { ExchangeData, ExchangeFormData, FormErrors } from '../types';
-import { dataService } from '../services/dataService';
+import { ExchangeData, ExchangeFormData, FormErrors } from '../../types';
+import { dataService } from '../../services/dataService';
 import './ExchangeForm.css';
 
 interface ExchangeFormProps {
@@ -18,9 +18,8 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
 }) => {
   const [config, setConfig] = useState(dataService.getExchangeConfig());
   const [formData, setFormData] = useState<ExchangeFormData>({
-    fromDenomination: 20000,
+    denomination: 20000,
     fromAmount: '',
-    toDenomination: 20000,
     feePercent: config.feePercent.toString(),
     customerName: '',
     note: '',
@@ -45,17 +44,15 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
   useEffect(() => {
     if (editingExchange) {
       setFormData({
-        fromDenomination: editingExchange.fromDenomination,
+        denomination: editingExchange.denomination || 20000,
         fromAmount: editingExchange.fromAmount.toString(),
-        toDenomination: editingExchange.toDenomination,
         feePercent: editingExchange.feePercent.toString(),
         customerName: editingExchange.customerName || '',
         note: editingExchange.note || '',
       });
       calculateExchange({
-        fromDenomination: editingExchange.fromDenomination,
+        denomination: editingExchange.denomination || 20000,
         fromAmount: editingExchange.fromAmount.toString(),
-        toDenomination: editingExchange.toDenomination,
         feePercent: editingExchange.feePercent.toString(),
         customerName: editingExchange.customerName || '',
         note: editingExchange.note || '',
@@ -64,9 +61,8 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
       const currentConfig = dataService.getExchangeConfig();
       const firstEnabled = currentConfig.denominations.find((d) => d.enabled);
       setFormData({
-        fromDenomination: firstEnabled?.value || 20000,
+        denomination: firstEnabled?.value || 20000,
         fromAmount: '',
-        toDenomination: firstEnabled?.value || 20000,
         feePercent: currentConfig.feePercent.toString(),
         customerName: '',
         note: '',
@@ -86,10 +82,7 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
     const feePercent = parseFloat(data.feePercent) || 0;
     const feeAmount = (fromAmount * feePercent) / 100;
     const totalReceived = fromAmount - feeAmount;
-
-    // Tính số tờ tiền nhận (làm tròn xuống)
-    const numberOfNotes = Math.floor(totalReceived / data.toDenomination);
-    const toAmount = numberOfNotes * data.toDenomination;
+    const toAmount = totalReceived; // Không cần làm tròn theo mệnh giá nữa
 
     setCalculatedResult({
       toAmount,
@@ -117,7 +110,7 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
     }
 
     // Tính toán lại nếu có thay đổi liên quan
-    if (name === 'fromAmount' || name === 'toDenomination' || name === 'feePercent') {
+    if (name === 'fromAmount' || name === 'denomination' || name === 'feePercent') {
       calculateExchange(updatedData);
     }
   };
@@ -126,9 +119,6 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
     const newErrors: FormErrors = {};
     if (!formData.fromAmount || parseFloat(formData.fromAmount) <= 0) {
       newErrors.fromAmount = 'Vui lòng nhập số tiền hợp lệ';
-    }
-    if (formData.fromDenomination === formData.toDenomination) {
-      newErrors.toDenomination = 'Mệnh giá gửi và nhận không được giống nhau';
     }
     const feePercent = parseFloat(formData.feePercent);
     if (isNaN(feePercent) || feePercent < 0 || feePercent > 100) {
@@ -146,9 +136,8 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
 
     if (editingExchange && onUpdateExchange) {
       onUpdateExchange(editingExchange.id, {
-        fromDenomination: formData.fromDenomination,
+        denomination: formData.denomination,
         fromAmount: parseFloat(formData.fromAmount),
-        toDenomination: formData.toDenomination,
         toAmount: calculatedResult.toAmount,
         feePercent: parseFloat(formData.feePercent),
         feeAmount: calculatedResult.feeAmount,
@@ -162,9 +151,8 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
       }
     } else {
       const newExchange: Omit<ExchangeData, 'id'> = {
-        fromDenomination: formData.fromDenomination,
+        denomination: formData.denomination,
         fromAmount: parseFloat(formData.fromAmount),
-        toDenomination: formData.toDenomination,
         toAmount: calculatedResult.toAmount,
         feePercent: parseFloat(formData.feePercent),
         feeAmount: calculatedResult.feeAmount,
@@ -180,9 +168,8 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
       const currentConfig = dataService.getExchangeConfig();
       const firstEnabled = currentConfig.denominations.find((d) => d.enabled);
       setFormData({
-        fromDenomination: firstEnabled?.value || 20000,
+        denomination: firstEnabled?.value || 20000,
         fromAmount: '',
-        toDenomination: firstEnabled?.value || 20000,
         feePercent: currentConfig.feePercent.toString(),
         customerName: '',
         note: '',
@@ -200,11 +187,11 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
       <form onSubmit={handleSubmit} className="exchange-form">
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="fromDenomination">Mệnh giá tiền gửi</label>
+            <label htmlFor="denomination">Mệnh giá</label>
             <select
-              id="fromDenomination"
-              name="fromDenomination"
-              value={formData.fromDenomination}
+              id="denomination"
+              name="denomination"
+              value={formData.denomination}
               onChange={handleChange}
             >
               {enabledDenominations.map((denom) => (
@@ -230,27 +217,6 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
             />
             {errors.fromAmount && (
               <span className="error-text">{errors.fromAmount}</span>
-            )}
-          </div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="toDenomination">Mệnh giá tiền nhận</label>
-            <select
-              id="toDenomination"
-              name="toDenomination"
-              value={formData.toDenomination}
-              onChange={handleChange}
-            >
-              {enabledDenominations.map((denom) => (
-                <option key={denom.value} value={denom.value}>
-                  {denom.label} ({denom.value.toLocaleString('vi-VN')} VNĐ)
-                </option>
-              ))}
-            </select>
-            {errors.toDenomination && (
-              <span className="error-text">{errors.toDenomination}</span>
             )}
           </div>
 
@@ -318,10 +284,6 @@ const ExchangeForm: React.FC<ExchangeFormProps> = ({
               <strong>Số tiền thực nhận: </strong>
               <span className="result-amount">
                 {calculatedResult.toAmount.toLocaleString('vi-VN')} VNĐ
-              </span>
-              <span className="result-note">
-                ({Math.floor(calculatedResult.totalReceived / formData.toDenomination)} tờ{' '}
-                {config.denominations.find((d) => d.value === formData.toDenomination)?.label})
               </span>
             </div>
           </div>

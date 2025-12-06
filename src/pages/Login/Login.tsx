@@ -1,7 +1,7 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { dataService } from '../services/dataService';
+import { useAuth } from '../../context/AuthContext';
+import { dataService } from '../../services/dataService';
 import './Login.css';
 
 const Login: React.FC = () => {

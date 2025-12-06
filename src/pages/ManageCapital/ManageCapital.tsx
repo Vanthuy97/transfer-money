@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Capital, DenominationConfig } from '../types';
-import { dataService } from '../services/dataService';
-import './QuanLyVon.css';
+import { useAuth } from '../../context/AuthContext';
+import { Capital, DenominationConfig } from '../../types';
+import { dataService } from '../../services/dataService';
+import './ManageCapital.css';
 
-const QuanLyVon: React.FC = () => {
+const ManageCapital: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [capitals, setCapitals] = useState<Capital[]>([]);
@@ -134,7 +134,7 @@ const QuanLyVon: React.FC = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa mệnh giá này?')) {
       // Xóa bằng cách disable và xóa khỏi danh sách
       const config = dataService.getExchangeConfig();
-      const updatedDenominations = config.denominations.filter((d) => d.value !== value);
+      const updatedDenominations = config.denominations.filter((d: DenominationConfig) => d.value !== value);
       dataService.updateExchangeConfig({ denominations: updatedDenominations });
       setDenominations(updatedDenominations);
     }
@@ -206,7 +206,7 @@ const QuanLyVon: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="quan-ly-von-container">
+      <div className="manage-capital-container">
         <div className="loading">Đang tải dữ liệu...</div>
       </div>
     );
@@ -459,5 +459,5 @@ const QuanLyVon: React.FC = () => {
   );
 };
 
-export default QuanLyVon;
+export default ManageCapital;
 

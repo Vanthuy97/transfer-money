@@ -1,9 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import QuanLyVon from './pages/QuanLyVon';
-import QuanLyGiaoDich from './pages/QuanLyGiaoDich';
+import Login from './pages/Login/Login';
+import Dashboard from './pages/Dashboard/Dashboard';
+import ManageCapital from './pages/ManageCapital/ManageCapital';
+import ManageTransactions from './pages/ManageTransactions/ManageTransactions';
+import AddEditTransaction from './pages/AddEditTransaction/AddEditTransaction';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 
@@ -35,10 +36,26 @@ function App() {
               }
             />
             <Route
+              path="/manage-capital"
+              element={
+                <PrivateRoute>
+                  <ManageCapital />
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="/quan-ly-von"
               element={
                 <PrivateRoute>
-                  <QuanLyVon />
+                  <ManageCapital />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/manage-transactions"
+              element={
+                <PrivateRoute>
+                  <ManageTransactions />
                 </PrivateRoute>
               }
             />
@@ -46,7 +63,39 @@ function App() {
               path="/quan-ly-giao-dich"
               element={
                 <PrivateRoute>
-                  <QuanLyGiaoDich />
+                  <ManageTransactions />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/add-edit-transaction"
+              element={
+                <PrivateRoute>
+                  <AddEditTransaction />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/add-edit-transaction/:id"
+              element={
+                <PrivateRoute>
+                  <AddEditTransaction />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/them-luu-giao-dich"
+              element={
+                <PrivateRoute>
+                  <AddEditTransaction />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/them-luu-giao-dich/:id"
+              element={
+                <PrivateRoute>
+                  <AddEditTransaction />
                 </PrivateRoute>
               }
             />

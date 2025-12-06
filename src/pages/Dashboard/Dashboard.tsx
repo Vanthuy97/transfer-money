@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import Statistics from '../components/Statistics';
-import { ExchangeData, Capital } from '../types';
-import { dataService } from '../services/dataService';
+import { useAuth } from '../../context/AuthContext';
+import Statistics from '../../components/Statistics/Statistics';
+import { ExchangeData, Capital } from '../../types';
+import { dataService } from '../../services/dataService';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -63,7 +63,7 @@ const Dashboard: React.FC = () => {
           <div className="menu-cards">
             <div
               className="menu-card"
-              onClick={() => navigate('/quan-ly-von')}
+              onClick={() => navigate('/manage-capital')}
             >
               <div className="card-icon">💼</div>
               <h2>Quản Lý Vốn</h2>
@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
 
             <div
               className="menu-card"
-              onClick={() => navigate('/quan-ly-giao-dich')}
+              onClick={() => navigate('/manage-transactions')}
             >
               <div className="card-icon">💱</div>
               <h2>Quản Lý Giao Dịch</h2>

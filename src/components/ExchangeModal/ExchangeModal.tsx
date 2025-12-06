@@ -1,6 +1,6 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { ExchangeData } from '../types';
-import { dataService } from '../services/dataService';
+import { ExchangeData, ExchangeStatus } from '../../types';
+import { dataService } from '../../services/dataService';
 import './ExchangeModal.css';
 
 interface ExchangeModalProps {
@@ -8,6 +8,7 @@ interface ExchangeModalProps {
   onClose: () => void;
   onSave: (exchange: Omit<ExchangeData, 'id'>) => void;
   editingExchange?: ExchangeData | null;
+  currentUser?: string; // Username của user đang đăng nhập
 }
 
 const ExchangeModal: React.FC<ExchangeModalProps> = ({
@@ -15,15 +16,19 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
   onClose,
   onSave,
   editingExchange,
+  currentUser,
 }) => {
+  const [config, setConfig] = useState(() => dataService.getExchangeConfig());
   const [formData, setFormData] = useState({
     exchangeAmount: editingExchange?.exchangeAmount?.toString() || '',
+    denomination: editingExchange?.denomination?.toString() || '',
     exchangerName: editingExchange?.exchangerName || '',
     phoneNumber: editingExchange?.phoneNumber || '',
     socialLink: editingExchange?.socialLink || '',
     feePercent: editingExchange?.feePercent?.toString() || '',
     receiveTime: editingExchange?.receiveTime || '',
     address: editingExchange?.address || '',
+    status: editingExchange?.status || 'Chưa Nhận Tiền',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -68,27 +73,35 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
   };
 
   React.useEffect(() => {
-    const defaultFeePercent = dataService.getExchangeConfig().feePercent || 5;
+    const currentConfig = dataService.getExchangeConfig();
+    setConfig(currentConfig);
+    const defaultFeePercent = currentConfig.feePercent || 5;
+    const firstEnabled = currentConfig.denominations.find((d) => d.enabled);
+    const defaultDenomination = firstEnabled?.value || 20000;
     
     if (editingExchange) {
       setFormData({
         exchangeAmount: editingExchange.exchangeAmount?.toString() || '',
+        denomination: editingExchange.denomination?.toString() || defaultDenomination.toString(),
         exchangerName: editingExchange.exchangerName || '',
         phoneNumber: editingExchange.phoneNumber || '',
         socialLink: editingExchange.socialLink || '',
         feePercent: editingExchange.feePercent?.toString() || defaultFeePercent.toString(),
         receiveTime: convertToDateTimeLocal(editingExchange.receiveTime || ''),
         address: editingExchange.address || '',
+        status: editingExchange.status || 'Chưa Nhận Tiền',
       });
     } else {
       setFormData({
         exchangeAmount: '',
+        denomination: defaultDenomination.toString(),
         exchangerName: '',
         phoneNumber: '',
         socialLink: '',
         feePercent: defaultFeePercent.toString(),
         receiveTime: '',
         address: '',
+        status: 'Chưa Nhận Tiền',
       });
     }
     setErrors({});
@@ -101,7 +114,7 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
     return numValue.toLocaleString('vi-VN') + '₫';
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>): void => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -121,6 +134,10 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
 
     if (!formData.exchangeAmount || parseFloat(formData.exchangeAmount) <= 0) {
       newErrors.exchangeAmount = 'Vui lòng nhập số tiền đổi hợp lệ';
+    }
+
+    if (!formData.denomination || parseFloat(formData.denomination) <= 0) {
+      newErrors.denomination = 'Vui lòng chọn mệnh giá';
     }
 
     if (!formData.exchangerName.trim()) {
@@ -156,19 +173,21 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
     }
 
     const exchangeAmount = parseFloat(formData.exchangeAmount);
+    const denomination = parseFloat(formData.denomination);
     const feePercent = parseFloat(formData.feePercent);
     const feeAmount = (exchangeAmount * feePercent) / 100;
     const totalReceived = exchangeAmount - feeAmount;
+    const toAmount = totalReceived; // Không cần làm tròn theo mệnh giá nữa
 
     const newExchange: Omit<ExchangeData, 'id'> = {
-      fromDenomination: 20000, // Giá trị mặc định, có thể cập nhật sau
+      denomination,
       fromAmount: exchangeAmount,
-      toDenomination: 20000, // Giá trị mặc định, có thể cập nhật sau
-      toAmount: totalReceived,
+      toAmount,
       feePercent,
       feeAmount,
       totalReceived,
       date: new Date().toLocaleDateString('vi-VN'),
+      createdBy: editingExchange ? editingExchange.createdBy : (currentUser || ''),
       exchangeAmount,
       exchangerName: formData.exchangerName.trim(),
       phoneNumber: formData.phoneNumber.trim(),
@@ -176,6 +195,7 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
       receiveTime: formatDateTimeForDisplay(formData.receiveTime.trim()),
       address: formData.address.trim(),
       customerName: formData.exchangerName.trim(),
+      status: formData.status as ExchangeStatus,
     };
 
     onSave(newExchange);
@@ -195,6 +215,29 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-group">
+            <label htmlFor="denomination">
+              Mệnh giá <span className="required">*</span>
+            </label>
+            <select
+              id="denomination"
+              name="denomination"
+              value={formData.denomination}
+              onChange={handleChange}
+            >
+              {config.denominations
+                .filter((d) => d.enabled)
+                .map((denom) => (
+                  <option key={denom.value} value={denom.value}>
+                    {denom.label} ({denom.value.toLocaleString('vi-VN')} VNĐ)
+                  </option>
+                ))}
+            </select>
+            {errors.denomination && (
+              <span className="error-text">{errors.denomination}</span>
+            )}
+          </div>
+
           <div className="form-group">
             <label htmlFor="exchangeAmount">
               Số tiền đổi <span className="required">*</span>
@@ -315,6 +358,26 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
             />
             {errors.address && (
               <span className="error-text">{errors.address}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="status">
+              Trạng thái <span className="required">*</span>
+            </label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+            >
+              <option value="Chưa Nhận Tiền">Chưa Nhận Tiền</option>
+              <option value="Chờ Giao">Chờ Giao</option>
+              <option value="Đã Nhận Tiền">Đã Nhận Tiền</option>
+              <option value="Hoàn Thành">Hoàn Thành</option>
+            </select>
+            {errors.status && (
+              <span className="error-text">{errors.status}</span>
             )}
           </div>
 
