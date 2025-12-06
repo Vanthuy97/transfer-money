@@ -96,15 +96,15 @@
   font-size: 22px;
 }
 
-.capital-form,
-.denomination-form {
+.denomination-form,
+.capital-form {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.capital-form .form-group,
-.denomination-form .form-group {
+.denomination-form .form-group,
+.capital-form .form-group {
   display: flex;
   flex-direction: column;
 }
@@ -238,8 +238,12 @@
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  height: fit-content;
+  height: 44px;
+  white-space: nowrap;
+  align-self: flex-end;
+  box-sizing: border-box;
 }
+
 
 .submit-button:hover {
   transform: translateY(-2px);

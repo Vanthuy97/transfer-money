@@ -21,6 +21,7 @@ const QuanLyVon: React.FC = () => {
   });
   const [selectedCapital, setSelectedCapital] = useState<Capital | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [editFormData, setEditFormData] = useState({
     amount: '',
     note: '',
@@ -45,14 +46,24 @@ const QuanLyVon: React.FC = () => {
 
   const handleAddCapital = (e: React.FormEvent): void => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
+
     if (!capitalFormData.amount || parseFloat(capitalFormData.amount) <= 0) {
       alert('Vui lòng nhập số tiền hợp lệ');
       return;
     }
 
+    setIsSubmitting(true);
+
     const now = new Date();
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${performance.now()}`;
     const newCapital: Capital = {
-      id: Date.now().toString(),
+      id: uniqueId,
       amount: parseFloat(capitalFormData.amount),
       date: now.toLocaleDateString('vi-VN'),
       time: now.toLocaleTimeString('vi-VN'),
@@ -61,12 +72,16 @@ const QuanLyVon: React.FC = () => {
     };
 
     try {
-      dataService.addCapital(newCapital);
-      setCapitals([...capitals, newCapital]);
+      const addedCapital = dataService.addCapital(newCapital);
+      // Reload từ dataService để đảm bảo dữ liệu đồng bộ
+      const data = dataService.getData();
+      setCapitals(data?.capitals || []);
       setCapitalFormData({ amount: '', note: '' });
     } catch (error) {
       console.error('Lỗi khi thêm vốn:', error);
       alert('Có lỗi xảy ra khi thêm vốn');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -322,8 +337,12 @@ const QuanLyVon: React.FC = () => {
                     placeholder="Nhập ghi chú"
                   />
                 </div>
-                <button type="submit" className="submit-button">
-                  Thêm Vốn
+                <button 
+                  type="submit" 
+                  className="submit-button"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Đang thêm...' : 'Thêm Vốn'}
                 </button>
               </form>
 
