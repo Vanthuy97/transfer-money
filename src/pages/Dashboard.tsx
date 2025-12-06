@@ -47,7 +47,7 @@ const Dashboard: React.FC = () => {
     <div className="dashboard-container">
       <header className="dashboard-header">
         <div className="header-content">
-          <h1>Dashboard - Quản Lý Đổi Tiền</h1>
+          <h1>Quản Lý Đổi Tiền</h1>
           <div className="user-info">
             <span>Xin chào, {user?.username}</span>
             <button onClick={handleLogout} className="logout-button">

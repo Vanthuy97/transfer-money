@@ -72,7 +72,7 @@ const QuanLyVon: React.FC = () => {
     };
 
     try {
-      const addedCapital = dataService.addCapital(newCapital);
+      dataService.addCapital(newCapital);
       // Reload từ dataService để đảm bảo dữ liệu đồng bộ
       const data = dataService.getData();
       setCapitals(data?.capitals || []);
